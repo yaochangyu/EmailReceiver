@@ -19,7 +19,7 @@ public class Pop3EmailReceiveService : IEmailReceiveService
         _logger = logger;
     }
 
-    public async Task<Result<IReadOnlyList<EmailDto>>> FetchEmailsAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IReadOnlyList<EmailContent>>> FetchEmailsAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -28,7 +28,7 @@ public class Pop3EmailReceiveService : IEmailReceiveService
             await client.ConnectAsync(_options.Host, _options.Port, _options.UseSsl, cancellationToken);
             await client.AuthenticateAsync(_options.Username, _options.Password, cancellationToken);
 
-            var emails = new List<EmailDto>();
+            var emails = new List<EmailContent>();
             var count = await client.GetMessageCountAsync(cancellationToken);
 
             _logger.LogInformation("POP3 伺服器上有 {Count} 封郵件", count);
@@ -38,7 +38,7 @@ public class Pop3EmailReceiveService : IEmailReceiveService
                 var message = await client.GetMessageAsync(i, cancellationToken);
                 var uidl = await client.GetMessageUidAsync(i, cancellationToken);
 
-                var emailDto = new EmailDto(
+                var emailDto = new EmailContent(
                     Uidl: uidl,
                     Subject: message.Subject ?? string.Empty,
                     Body: message.TextBody ?? message.HtmlBody ?? string.Empty,
@@ -54,12 +54,12 @@ public class Pop3EmailReceiveService : IEmailReceiveService
 
             _logger.LogInformation("成功從 POP3 伺服器取得 {Count} 封郵件", emails.Count);
 
-            return Result.Success<IReadOnlyList<EmailDto>>(emails);
+            return Result.Success<IReadOnlyList<EmailContent>>(emails);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "從 POP3 伺服器取得郵件時發生錯誤");
-            return Result.Failure<IReadOnlyList<EmailDto>>($"從 POP3 伺服器取得郵件時發生錯誤: {ex.Message}");
+            return Result.Failure<IReadOnlyList<EmailContent>>($"從 POP3 伺服器取得郵件時發生錯誤: {ex.Message}");
         }
     }
 }

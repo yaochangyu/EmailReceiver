@@ -5,5 +5,5 @@ namespace EmailReceiver.WebApi.Services;
 
 public interface IEmailReceiveService
 {
-    Task<Result<IReadOnlyList<EmailDto>>> FetchEmailsAsync(CancellationToken cancellationToken = default);
+    Task<Result<IReadOnlyList<EmailContent>>> FetchEmailsAsync(CancellationToken cancellationToken = default);
 }

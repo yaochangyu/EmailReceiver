@@ -1,6 +1,6 @@
 namespace EmailReceiver.WebApi.Models;
 
-public sealed record EmailDto(
+public sealed record EmailContent(
     string Uidl,
     string Subject,
     string Body,
