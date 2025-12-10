@@ -1,5 +1,6 @@
 using CSharpFunctionalExtensions;
 using EmailReceiver.WebApi.Entities;
+using EmailReceiver.WebApi.Models.Responses;
 using EmailReceiver.WebApi.Repositories;
 using EmailReceiver.WebApi.Services;
 
@@ -32,46 +33,46 @@ public class ReceiveEmailsHandler
         }
 
         var emails = fetchResult.Value;
-        var savedCount = 0;
-
-        foreach (var emailDto in emails)
+        if (emails.Count == 0)
         {
-            var existsResult = await _repository.ExistsByUidlAsync(emailDto.Uidl, cancellationToken);
-            if (existsResult.IsFailure)
-            {
-                _logger.LogWarning("檢查 UIDL {Uidl} 是否存在時發生錯誤: {Error}", emailDto.Uidl, existsResult.Error);
-                continue;
-            }
-
-            if (existsResult.Value)
-            {
-                _logger.LogInformation("郵件 UIDL {Uidl} 已存在，跳過", emailDto.Uidl);
-                continue;
-            }
-
-            var emailMessage = EmailMessage.Create(
-                emailDto.Uidl,
-                emailDto.Subject,
-                emailDto.Body,
-                emailDto.From,
-                emailDto.To,
-                emailDto.ReceivedAt
-            );
-
-            var addResult = await _repository.AddAsync(emailMessage, cancellationToken);
-            if (addResult.IsSuccess)
-            {
-                savedCount++;
-                _logger.LogInformation("成功儲存郵件 UIDL: {Uidl}, 主旨: {Subject}", emailDto.Uidl, emailDto.Subject);
-            }
-            else
-            {
-                _logger.LogWarning("儲存郵件 UIDL {Uidl} 時發生錯誤: {Error}", emailDto.Uidl, addResult.Error);
-            }
+            _logger.LogInformation("沒有新的郵件");
+            return Result.Success(0);
         }
 
-        _logger.LogInformation("郵件接收完成，總共儲存 {SavedCount} 封郵件", savedCount);
+        var uidlsResult = await _repository.GetAllUidlsAsync(cancellationToken);
+        if (uidlsResult.IsFailure)
+        {
+            return Result.Failure<int>(uidlsResult.Error);
+        }
 
-        return Result.Success(savedCount);
+        var existingUidls = new HashSet<string>(uidlsResult.Value);
+
+        var newEmails = emails
+            .Where(e => !existingUidls.Contains(e.Uidl))
+            .Select(e => EmailMessage.Create(
+                e.Uidl,
+                e.Subject,
+                e.Body,
+                e.From,
+                e.To,
+                e.ReceivedAt
+            ))
+            .ToList();
+
+        if (newEmails.Count == 0)
+        {
+            _logger.LogInformation("沒有新的郵件");
+            return Result.Success(0);
+        }
+
+        var addResult = await _repository.AddRangeAsync(newEmails, cancellationToken);
+        if (addResult.IsFailure)
+        {
+            return Result.Failure<int>(addResult.Error);
+        }
+
+        _logger.LogInformation("郵件接收完成，總共儲存 {SavedCount} 封郵件", newEmails.Count);
+
+        return Result.Success(newEmails.Count);
     }
 }
