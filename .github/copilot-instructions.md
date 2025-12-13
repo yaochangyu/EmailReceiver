@@ -304,6 +304,79 @@ letters (1) ←──→ (N) mailReplay
 2. 使用 lNo 建立 MailReplay 記錄至 mailReplay 表
 3. 兩個操作在同一交易中執行，確保資料一致性
 
+### 資料寫入流程詳細說明
+
+#### 1. letters 表寫入
+
+**對應的 SQL 語法：**
+```sql
+Insert Into letters(sender, s_email, towhom, s_date, s_subject, s_question, circumstance, ok)
+Values(N'寄件者姓名', N'寄件Email', 1111, '寄信日期', N'信件標題', N'信件內容', N'-使用敢言、感言-', 2);
+```
+
+**程式碼實作（ReceiveEmailRepository.cs:43-50）：**
+```csharp
+var letter = Letter.Create(
+    sender: request.SenderName,        // → sender
+    sEmail: request.SenderEmail,       // → s_email
+    sSubject: request.Subject,         // → s_subject
+    sQuestion: request.Body,           // → s_question
+    sDate: request.MailDate,           // → s_date
+    towhom: request.ToWhom,            // → towhom (預設: "1111")
+    circumstance: request.Circumstance); // → circumstance (預設: "-使用敢言、感言-")
+    // Ok = 2 自動設定於 Letter.Create() 內部
+```
+
+#### 2. mailReplay 表寫入
+
+**對應的 SQL 語法：**
+```sql
+Insert Into mailReplay(mailFrom, mailFromName, mailSubject, mailDate, mailBody, mailType, tracker, lNo, mailAttach, mailAttachName, mailAttachSize)
+Values(N'寄件Email', N'寄件者姓名', N'信件標題', '寄信日期', N'信件內容', N'-使用敢言、感言-', N'客服人員', letters.lNo, '附件', N'附件名稱', '附件大小');
+```
+
+**程式碼實作（ReceiveEmailRepository.cs:55-66）：**
+```csharp
+var mailReplay = MailReplay.Create(
+    mailFrom: request.SenderEmail,              // → mailFrom
+    mailFromName: request.SenderName,           // → mailFromName
+    mailSubject: request.Subject,               // → mailSubject
+    mailBody: request.Body,                     // → mailBody
+    mailDate: request.MailDate,                 // → mailDate
+    lNo: letter.LNo,                            // → lNo (從 letters 表取得)
+    mailType: request.Circumstance,             // → mailType (如: "-使用敢言、感言-")
+    tracker: request.Tracker,                   // → tracker (客服人員)
+    mailAttach: request.Attachment ?? "",       // → mailAttach (附件)
+    mailAttachName: request.AttachmentName ?? "", // → mailAttachName (附件名稱)
+    mailAttachSize: request.AttachmentSize ?? "0"); // → mailAttachSize (附件大小)
+    // Status = 1 自動設定於 MailReplay.Create() 內部
+```
+
+#### 3. 完整交易流程
+
+```csharp
+using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+try
+{
+    // 步驟 1: 新增 Letter 並取得 LNo
+    await _context.Letters.AddAsync(letter, cancellationToken);
+    await _context.SaveChangesAsync(cancellationToken);
+
+    // 步驟 2: 使用 LNo 新增 MailReplay
+    await _context.MailReplays.AddAsync(mailReplay, cancellationToken);
+    await _context.SaveChangesAsync(cancellationToken);
+
+    // 步驟 3: 提交交易
+    await transaction.CommitAsync(cancellationToken);
+}
+catch (Exception ex)
+{
+    // 發生錯誤時回滾交易
+    await transaction.RollbackAsync(cancellationToken);
+    return Result.Failure<int, Failure>(Failure.DbError("儲存郵件失敗", ex));
+}
+```
+
 ### 設計說明
 
 #### 為何採用雙表架構？
@@ -450,12 +523,17 @@ if (result.IsFailure)
 - `Failure.InternalServerError(exception)` - 伺服器內部錯誤
 
 #### 4. 不可變物件設計
+
+**Letter 實體：**
 ```csharp
 public sealed class Letter
 {
     public int LNo { get; init; }
     public string? Sender { get; init; }
     public string? SEmail { get; init; }
+    public string? Towhom { get; init; }
+    public string? Circumstance { get; init; }
+    public byte Ok { get; init; }
     // ... 其他屬性
 
     private Letter() { }
@@ -465,8 +543,10 @@ public sealed class Letter
         string? sEmail,
         string? sSubject,
         string? sQuestion,
-        string? ip = null,
-        DateTime? sDate = null)
+        DateTime? sDate = null,
+        string? towhom = null,
+        string? circumstance = null,
+        string? ip = null)
     {
         return new Letter
         {
@@ -475,9 +555,57 @@ public sealed class Letter
             SSubject = sSubject,
             SQuestion = sQuestion,
             SDate = sDate ?? DateTime.Now,
+            Towhom = towhom ?? "1111",
+            Circumstance = circumstance ?? "-使用敢言、感言-",
             Ok = 2, // 2: 未處理
             Rowguid37 = Guid.NewGuid(),
             Ip = ip
+        };
+    }
+}
+```
+
+**MailReplay 實體：**
+```csharp
+public sealed class MailReplay
+{
+    public int MNo { get; init; }
+    public string MailFrom { get; init; } = string.Empty;
+    public string MailFromName { get; init; } = string.Empty;
+    public string MailType { get; init; } = "0";
+    public int LNo { get; init; }
+    // ... 其他屬性
+
+    private MailReplay() { }
+
+    public static MailReplay Create(
+        string mailFrom,
+        string mailFromName,
+        string mailSubject,
+        string mailBody,
+        DateTime mailDate,
+        int lNo = 0,
+        string mailType = "0",
+        string tracker = "",
+        string mailAttach = "",
+        string mailAttachName = "",
+        string mailAttachSize = "0")
+    {
+        return new MailReplay
+        {
+            MailFrom = mailFrom,
+            MailFromName = mailFromName,
+            MailSubject = mailSubject,
+            MailBody = mailBody,
+            MailDate = mailDate,
+            Status = 1, // 1: 待處理
+            DateIn = DateTime.Now,
+            LNo = lNo,
+            MailType = mailType,
+            Tracker = tracker,
+            MailAttach = mailAttach,
+            MailAttachName = mailAttachName,
+            MailAttachSize = mailAttachSize
         };
     }
 }

@@ -45,7 +45,9 @@ public class ReceiveEmailRepository : IReceiveEmailRepository
                 sEmail: request.SenderEmail,
                 sSubject: request.Subject,
                 sQuestion: request.Body,
-                sDate: request.MailDate);
+                sDate: request.MailDate,
+                towhom: request.ToWhom,
+                circumstance: request.Circumstance);
 
             // 需要先新增 Letter，以取得生成的 LNo
             await _context.Letters.AddAsync(letter, cancellationToken);

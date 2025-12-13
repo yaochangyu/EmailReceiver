@@ -142,16 +142,20 @@ public sealed class Letter
     /// <param name="sEmail">來信者 Email</param>
     /// <param name="sSubject">來信主旨</param>
     /// <param name="sQuestion">來信內容</param>
-    /// <param name="ip">來信 IP</param>
     /// <param name="sDate">來信日期 (預設為目前時間)</param>
+    /// <param name="towhom">收信人 (預設為 1111)</param>
+    /// <param name="circumstance">來信問題類別 (預設: -使用敢言、感言-)</param>
+    /// <param name="ip">來信 IP</param>
     /// <returns>Letter 實體</returns>
     public static Letter Create(
         string? sender,
         string? sEmail,
         string? sSubject,
         string? sQuestion,
-        string? ip = null,
-        DateTime? sDate = null)
+        DateTime? sDate = null,
+        string? towhom = null,
+        string? circumstance = null,
+        string? ip = null)
     {
         return new Letter
         {
@@ -160,6 +164,8 @@ public sealed class Letter
             SSubject = sSubject,
             SQuestion = sQuestion,
             SDate = sDate ?? DateTime.Now,
+            Towhom = towhom ?? "1111",
+            Circumstance = circumstance ?? "-使用敢言、感言-",
             Ok = 2, // 2: 未處理
             Rowguid37 = Guid.NewGuid(),
             Ip = ip
