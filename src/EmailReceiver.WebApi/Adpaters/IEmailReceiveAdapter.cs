@@ -1,9 +1,9 @@
 using CSharpFunctionalExtensions;
 using EmailReceiver.WebApi.Models.Responses;
 
-namespace EmailReceiver.WebApi.Services;
+namespace EmailReceiver.WebApi.Adpaters;
 
-public interface IEmailReceiveService
+public interface IEmailReceiveAdapter
 {
     Task<Result<IReadOnlyList<EmailMessageResponse>>> FetchEmailsAsync(CancellationToken cancellationToken = default);
 }

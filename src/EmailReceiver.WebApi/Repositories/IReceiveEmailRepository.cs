@@ -3,7 +3,7 @@ using EmailReceiver.WebApi.Entities;
 
 namespace EmailReceiver.WebApi.Repositories;
 
-public interface IEmailMessageRepository
+public interface IReceiveEmailRepository
 {
     Task<Result<EmailMessage>> AddAsync(EmailMessage emailMessage, CancellationToken cancellationToken = default);
     Task<Result> AddRangeAsync(IEnumerable<EmailMessage> emailMessages, CancellationToken cancellationToken = default);

@@ -9,16 +9,16 @@ namespace EmailReceiver.WebApi.Controllers;
 [Route("api/[controller]")]
 public class EmailsController : ControllerBase
 {
-    private readonly ReceiveEmailsHandler _receiveEmailsHandler;
-    private readonly IEmailMessageRepository _repository;
+    private readonly ReceiveEmailHandler _receiveEmailHandler;
+    private readonly IReceiveEmailRepository _repository;
     private readonly ILogger<EmailsController> _logger;
 
     public EmailsController(
-        ReceiveEmailsHandler receiveEmailsHandler,
-        IEmailMessageRepository repository,
+        ReceiveEmailHandler receiveEmailHandler,
+        IReceiveEmailRepository repository,
         ILogger<EmailsController> logger)
     {
-        _receiveEmailsHandler = receiveEmailsHandler;
+        _receiveEmailHandler = receiveEmailHandler;
         _repository = repository;
         _logger = logger;
     }
@@ -28,7 +28,7 @@ public class EmailsController : ControllerBase
     {
         _logger.LogInformation("接收到收信請求");
 
-        var result = await _receiveEmailsHandler.HandleAsync(cancellationToken);
+        var result = await _receiveEmailHandler.HandleAsync(cancellationToken);
 
         if (result.IsFailure)
         {

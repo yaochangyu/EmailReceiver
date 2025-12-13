@@ -1,8 +1,8 @@
+using EmailReceiver.WebApi.Adpaters;
 using EmailReceiver.WebApi.Data;
 using EmailReceiver.WebApi.Handlers;
 using EmailReceiver.WebApi.Options;
 using EmailReceiver.WebApi.Repositories;
-using EmailReceiver.WebApi.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,13 +18,13 @@ builder.Services.AddDbContext<EmailReceiverDbContext>(options =>
 builder.Services.Configure<Pop3Options>(builder.Configuration.GetSection(Pop3Options.SectionName));
 
 // 註冊 Repositories
-builder.Services.AddScoped<IEmailMessageRepository, EmailMessageRepository>();
+builder.Services.AddScoped<IReceiveEmailRepository, ReceiveEmailRepository>();
 
 // 註冊 Services
-builder.Services.AddScoped<IEmailReceiveService, Pop3EmailReceiveService>();
+builder.Services.AddScoped<IEmailReceiveAdapter, Pop3EmailReceiveAdapter>();
 
 // 註冊 Handlers
-builder.Services.AddScoped<ReceiveEmailsHandler>();
+builder.Services.AddScoped<ReceiveEmailHandler>();
 
 // 加入 Swagger
 builder.Services.AddEndpointsApiExplorer();

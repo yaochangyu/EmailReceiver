@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EmailReceiver.WebApi.Repositories;
 
-public class EmailMessageRepository : IEmailMessageRepository
+public class ReceiveEmailRepository : IReceiveEmailRepository
 {
     private readonly EmailReceiverDbContext _context;
 
-    public EmailMessageRepository(EmailReceiverDbContext context)
+    public ReceiveEmailRepository(EmailReceiverDbContext context)
     {
         _context = context;
     }

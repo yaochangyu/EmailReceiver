@@ -4,16 +4,16 @@ using EmailReceiver.WebApi.Options;
 using MailKit.Net.Pop3;
 using Microsoft.Extensions.Options;
 
-namespace EmailReceiver.WebApi.Services;
+namespace EmailReceiver.WebApi.Adpaters;
 
-public class Pop3EmailReceiveService : IEmailReceiveService
+public class Pop3EmailReceiveAdapter : IEmailReceiveAdapter
 {
     private readonly Pop3Options _options;
-    private readonly ILogger<Pop3EmailReceiveService> _logger;
+    private readonly ILogger<Pop3EmailReceiveAdapter> _logger;
 
-    public Pop3EmailReceiveService(
+    public Pop3EmailReceiveAdapter(
         IOptions<Pop3Options> options,
-        ILogger<Pop3EmailReceiveService> logger)
+        ILogger<Pop3EmailReceiveAdapter> logger)
     {
         _options = options.Value;
         _logger = logger;

@@ -1,23 +1,23 @@
 using CSharpFunctionalExtensions;
+using EmailReceiver.WebApi.Adpaters;
 using EmailReceiver.WebApi.Entities;
 using EmailReceiver.WebApi.Models.Responses;
 using EmailReceiver.WebApi.Repositories;
-using EmailReceiver.WebApi.Services;
 
 namespace EmailReceiver.WebApi.Handlers;
 
-public class ReceiveEmailsHandler
+public class ReceiveEmailHandler
 {
-    private readonly IEmailReceiveService _emailReceiveService;
-    private readonly IEmailMessageRepository _repository;
-    private readonly ILogger<ReceiveEmailsHandler> _logger;
+    private readonly IEmailReceiveAdapter _emailReceiveAdapter;
+    private readonly IReceiveEmailRepository _repository;
+    private readonly ILogger<ReceiveEmailHandler> _logger;
 
-    public ReceiveEmailsHandler(
-        IEmailReceiveService emailReceiveService,
-        IEmailMessageRepository repository,
-        ILogger<ReceiveEmailsHandler> logger)
+    public ReceiveEmailHandler(
+        IEmailReceiveAdapter emailReceiveAdapter,
+        IReceiveEmailRepository repository,
+        ILogger<ReceiveEmailHandler> logger)
     {
-        _emailReceiveService = emailReceiveService;
+        _emailReceiveAdapter = emailReceiveAdapter;
         _repository = repository;
         _logger = logger;
     }
@@ -26,7 +26,7 @@ public class ReceiveEmailsHandler
     {
         _logger.LogInformation("開始接收郵件");
 
-        var fetchResult = await _emailReceiveService.FetchEmailsAsync(cancellationToken);
+        var fetchResult = await _emailReceiveAdapter.FetchEmailsAsync(cancellationToken);
         if (fetchResult.IsFailure)
         {
             return Result.Failure<int>(fetchResult.Error);
