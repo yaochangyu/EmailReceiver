@@ -1,5 +1,6 @@
 using CSharpFunctionalExtensions;
 using EmailReceiver.WebApi.EmailReceiver.Data.Entities;
+using EmailReceiver.WebApi.EmailReceiver.Models;
 
 namespace EmailReceiver.WebApi.EmailReceiver.Repositories;
 
@@ -9,4 +10,12 @@ public interface IReceiveEmailRepository
     Task<Result> AddRangeAsync(IEnumerable<EmailMessage> emailMessages, CancellationToken cancellationToken = default);
     Task<Result<IReadOnlyList<EmailMessage>>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<Result<IReadOnlyList<string>>> GetAllUidlsAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// 儲存郵件至 letters 和 mailReplay 資料表 (舊系統)
+    /// </summary>
+    /// <param name="model">郵件資料模型</param>
+    /// <param name="cancellationToken">取消權杖</param>
+    /// <returns>成功時返回 letters 表的 LNo</returns>
+    Task<Result<int>> AddAsync(InsertEmailRequest model, CancellationToken cancellationToken = default);
 }
