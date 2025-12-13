@@ -1,5 +1,15 @@
 # GitHub Copilot 專案指引 - EmailReceiver
 
+## 重要編碼原則
+
+### 參考模板專案
+- **編碼原則**：參考 https://github.com/yaochangyu/api.template 的 CLAUDE.md
+- **實作方式**：從 https://github.com/yaochangyu/api.template 複製程式碼改寫，修改成符合本專案需求的命名空間
+- **文件規範**：需包含以下 mermaid 圖表
+  - 流程圖（Flowchart）
+  - 有限狀態機（State Diagram）
+  - 循序圖（Sequence Diagram）
+
 ## 專案概述
 
 這是一個使用 **C# .NET 9.0** 開發的 **POP3 郵件接收 Web API**，採用 **Clean Architecture** 架構模式，使用 **MailKit** 處理郵件，並透過 **Entity Framework Core** 將郵件儲存至 **SQL Server** 資料庫。

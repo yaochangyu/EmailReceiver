@@ -2,6 +2,7 @@ using CSharpFunctionalExtensions;
 using EmailReceiver.WebApi.EmailReceiver.Data;
 using EmailReceiver.WebApi.EmailReceiver.Data.Entities;
 using EmailReceiver.WebApi.EmailReceiver.Models;
+using EmailReceiver.WebApi.Infrastructure.ErrorHandling;
 using Microsoft.EntityFrameworkCore;
 
 namespace EmailReceiver.WebApi.EmailReceiver.Repositories;
@@ -15,24 +16,22 @@ public class ReceiveEmailRepository : IReceiveEmailRepository
         _context = context;
     }
 
-
-
-
-    public async Task<Result<IReadOnlyList<string>>> GetAllUidlsAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IReadOnlyList<string>, Failure>> GetAllUidlsAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             var uidls = await _context.MailReplays.Select(e => e.MailAttachName)
                 .ToListAsync(cancellationToken);
-            return Result.Success<IReadOnlyList<string>>(uidls);
+            return Result.Success<IReadOnlyList<string>, Failure>(uidls);
         }
         catch (Exception ex)
         {
-            return Result.Failure<IReadOnlyList<string>>($"取得所有 UIDL 時發生錯誤: {ex.Message}");
+            return Result.Failure<IReadOnlyList<string>, Failure>(
+                Failure.DbError("取得所有 UIDL 時發生錯誤", ex));
         }
     }
 
-    public async Task<Result<int>> AddAsync(InsertEmailRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<int, Failure>> AddAsync(InsertEmailRequest request, CancellationToken cancellationToken = default)
     {
         using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         
@@ -69,12 +68,13 @@ public class ReceiveEmailRepository : IReceiveEmailRepository
 
             await transaction.CommitAsync(cancellationToken);
             
-            return Result.Success(letter.LNo);
+            return Result.Success<int, Failure>(letter.LNo);
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            return Result.Failure<int>($"儲存郵件至 letters 和 mailReplay 時發生錯誤: {ex.Message}");
+            return Result.Failure<int, Failure>(
+                Failure.DbError("儲存郵件至 letters 和 mailReplay 時發生錯誤", ex));
         }
     }
 }

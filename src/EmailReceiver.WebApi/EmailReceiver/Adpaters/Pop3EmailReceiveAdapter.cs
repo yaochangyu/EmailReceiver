@@ -1,6 +1,7 @@
 using CSharpFunctionalExtensions;
 using EmailReceiver.WebApi.EmailReceiver.Models.Responses;
 using EmailReceiver.WebApi.EmailReceiver.Options;
+using EmailReceiver.WebApi.Infrastructure.ErrorHandling;
 using MailKit.Net.Pop3;
 using Microsoft.Extensions.Options;
 
@@ -9,17 +10,13 @@ namespace EmailReceiver.WebApi.EmailReceiver.Adpaters;
 public class Pop3EmailReceiveAdapter : IEmailReceiveAdapter
 {
     private readonly Pop3Options _options;
-    private readonly ILogger<Pop3EmailReceiveAdapter> _logger;
 
-    public Pop3EmailReceiveAdapter(
-        IOptions<Pop3Options> options,
-        ILogger<Pop3EmailReceiveAdapter> logger)
+    public Pop3EmailReceiveAdapter(IOptions<Pop3Options> options)
     {
         _options = options.Value;
-        _logger = logger;
     }
 
-    public async Task<Result<IReadOnlyList<EmailMessageResponse>>> FetchEmailsAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IReadOnlyList<EmailMessageResponse>, Failure>> FetchEmailsAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -30,8 +27,6 @@ public class Pop3EmailReceiveAdapter : IEmailReceiveAdapter
 
             var emails = new List<EmailMessageResponse>();
             var count = await client.GetMessageCountAsync(cancellationToken);
-
-            _logger.LogInformation("POP3 伺服器上有 {Count} 封郵件", count);
 
             for (var i = 0; i < count; i++)
             {
@@ -54,14 +49,12 @@ public class Pop3EmailReceiveAdapter : IEmailReceiveAdapter
 
             await client.DisconnectAsync(true, cancellationToken);
 
-            _logger.LogInformation("成功從 POP3 伺服器取得 {Count} 封郵件", emails.Count);
-
-            return Result.Success<IReadOnlyList<EmailMessageResponse>>(emails);
+            return Result.Success<IReadOnlyList<EmailMessageResponse>, Failure>(emails);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "從 POP3 伺服器取得郵件時發生錯誤");
-            return Result.Failure<IReadOnlyList<EmailMessageResponse>>($"從 POP3 伺服器取得郵件時發生錯誤: {ex.Message}");
+            return Result.Failure<IReadOnlyList<EmailMessageResponse>, Failure>(
+                Failure.Pop3Error("從 POP3 伺服器取得郵件時發生錯誤", ex));
         }
     }
 }
