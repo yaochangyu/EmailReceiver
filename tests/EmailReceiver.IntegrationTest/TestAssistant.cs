@@ -1,16 +1,17 @@
-﻿namespace EmailReceiver.IntegrationTest;
+﻿using EmailReceiver.WebApi.Infrastructure;
+
+namespace EmailReceiver.IntegrationTest;
 
 class TestAssistant
 {
     public static void SetEnvironmentVariables()
     {
-        Environment.SetEnvironmentVariable("JOB1111_ENVIRONMENT", "QA");
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
     }
 
     public static void SetDbConnectionEnvironmentVariable(string connectionString)
     {
-        // Environment.SetEnvironmentVariable(nameof(SYS_DATABASE_CONNECTION_STRING), connectionString);
+        Environment.SetEnvironmentVariable(nameof(SYS_DATABASE_CONNECTION_STRING), connectionString);
     }
 
     public static void SetRedisConnectionEnvironmentVariable(string url)

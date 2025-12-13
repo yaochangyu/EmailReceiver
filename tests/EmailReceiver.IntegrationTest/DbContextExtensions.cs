@@ -47,13 +47,31 @@ public static class DbContextExtensions
         foreach (var sqlFile in sqlFiles)
         {
             var sql = await File.ReadAllTextAsync(sqlFile);
-            await using var cmd = dbConnection.CreateCommand();
+            
+            // 使用 Regex 分割 GO，支援各種換行格式
+            var batches = System.Text.RegularExpressions.Regex.Split(
+                sql, 
+                @"^\s*GO\s*$", 
+                System.Text.RegularExpressions.RegexOptions.Multiline | 
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
-            // Iterate the string array and execute each one.
-            cmd.CommandText = sql;
-            await cmd.ExecuteNonQueryAsync();
+            foreach (var batch in batches)
+            {
+                var cleanBatch = batch.Trim();
+                
+                // 過濾不適合在 ADO.NET 中執行的指令
+                if (string.IsNullOrWhiteSpace(cleanBatch) ||
+                    cleanBatch.StartsWith("CREATE DATABASE", StringComparison.OrdinalIgnoreCase) ||
+                    cleanBatch.StartsWith("USE ", StringComparison.OrdinalIgnoreCase) ||
+                    cleanBatch.StartsWith("USE[", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
 
-            // dbContext.Database.ExecuteSqlRaw(sql);
+                await using var cmd = dbConnection.CreateCommand();
+                cmd.CommandText = cleanBatch;
+                await cmd.ExecuteNonQueryAsync();
+            }
         }
     }
 }

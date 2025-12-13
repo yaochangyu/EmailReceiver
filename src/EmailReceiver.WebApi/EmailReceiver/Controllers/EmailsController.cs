@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EmailReceiver.WebApi.EmailReceiver.Controllers;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/emails")]
 public class EmailsController : ControllerBase
 {
     private readonly ReceiveEmailHandler _receiveEmailHandler;
@@ -22,7 +22,7 @@ public class EmailsController : ControllerBase
     }
 
     [HttpPost("receive")]
-    public async Task<IActionResult> ReceiveEmails(CancellationToken cancellationToken)
+    public async Task<IActionResult> Receive(CancellationToken cancellationToken)
     {
         var result = await _receiveEmailHandler.HandleAsync(cancellationToken);
 

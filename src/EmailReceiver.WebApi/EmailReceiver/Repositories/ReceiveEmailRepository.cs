@@ -16,7 +16,8 @@ public class ReceiveEmailRepository : IReceiveEmailRepository
         _context = context;
     }
 
-    public async Task<Result<IReadOnlyList<string>, Failure>> GetAllUidlsAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IReadOnlyList<string>, Failure>> GetAllUidlsAsync(
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -31,10 +32,11 @@ public class ReceiveEmailRepository : IReceiveEmailRepository
         }
     }
 
-    public async Task<Result<int, Failure>> AddAsync(InsertEmailRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<int, Failure>> AddAsync(InsertEmailRequest request,
+        CancellationToken cancellationToken = default)
     {
         using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        
+
         try
         {
             // 1. 建立 Letter 實體
@@ -67,7 +69,7 @@ public class ReceiveEmailRepository : IReceiveEmailRepository
             await _context.SaveChangesAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
-            
+
             return Result.Success<int, Failure>(letter.LNo);
         }
         catch (Exception ex)

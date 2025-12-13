@@ -5,7 +5,6 @@ using System.Text.Json.JsonDiffPatch.Xunit;
 using System.Text.Json.Nodes;
 using EmailReceiver.WebApi;
 using EmailReceiver.WebApi.EmailReceiver.Data;
-using EmailReceiver.WebApi.EmailReceiver.Data.Entities;
 using FluentAssertions;
 using JobBank1111.Testing.Common;
 using JobBank1111.Testing.Common.MockServer;
@@ -69,14 +68,14 @@ public class BaseStep : Steps
             var msSqlContainer = await TestContainerFactory.CreateMsSqlContainerAsync();
             var dbConnectionString = msSqlContainer.GetConnectionString();
             TestAssistant.SetDbConnectionEnvironmentVariable(dbConnectionString);
-            var redisContainer = await TestContainerFactory.CreateRedisContainerAsync();
-            var redisDomainUrl = redisContainer.GetConnectionString();
-            TestAssistant.SetRedisConnectionEnvironmentVariable(redisDomainUrl);
-
-            var mockServerContainer = await TestContainerFactory.CreateMockServerContainerAsync();
-            var externalUrl = TestContainerFactory.GetMockServerConnection(mockServerContainer);
-            TestAssistant.SetExternalConnectionEnvironmentVariable(externalUrl);
-            ExternalClient = new HttpClient() { BaseAddress = new Uri(externalUrl) };
+            // var redisContainer = await TestContainerFactory.CreateRedisContainerAsync();
+            // var redisDomainUrl = redisContainer.GetConnectionString();
+            // TestAssistant.SetRedisConnectionEnvironmentVariable(redisDomainUrl);
+            //
+            // var mockServerContainer = await TestContainerFactory.CreateMockServerContainerAsync();
+            // var externalUrl = TestContainerFactory.GetMockServerConnection(mockServerContainer);
+            // TestAssistant.SetExternalConnectionEnvironmentVariable(externalUrl);
+            // ExternalClient = new HttpClient() { BaseAddress = new Uri(externalUrl) };
         }
     }
 
@@ -89,6 +88,7 @@ public class BaseStep : Steps
     private static IServiceProvider CreateServiceProvider()
     {
         var services = new ServiceCollection();
+        services.AddSysEnvironments();
         services.AddLogging(builder => builder.AddConsole());
         services.AddDatabase();
 

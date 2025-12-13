@@ -34,4 +34,18 @@
     <ProjectReference Include="..\EmailReceiver.Testing.Common\EmailReceiver.Testing.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="DB\Scripts\db.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="_01_Demo\飯粒.feature" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckBuild Remove="_01_Demo\飯粒.feature.cs" />
+  </ItemGroup>
+
 </Project>
