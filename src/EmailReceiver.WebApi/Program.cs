@@ -1,20 +1,39 @@
+using EmailReceiver.WebApi;
 using EmailReceiver.WebApi.EmailReceiver;
 using EmailReceiver.WebApi.EmailReceiver.Adpaters;
-using EmailReceiver.WebApi.EmailReceiver.Data;
 using EmailReceiver.WebApi.EmailReceiver.Options;
 using EmailReceiver.WebApi.EmailReceiver.Repositories;
+using EmailReceiver.WebApi.Infrastructure;
 using EmailReceiver.WebApi.Infrastructure.Middleware;
 using EmailReceiver.WebApi.Infrastructure.TraceContext;
-using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Serilog.Events;
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/host-.txt", rollingInterval: RollingInterval.Hour)
+    .CreateLogger();
+Log.Information("Starting web host");
+if (Array.FindIndex(args, x => x == "--local") >= 0)
+{
+    var envFolder = EnvironmentUtility.FindParentFolder("env");
+    EnvironmentUtility.ReadEnvironmentFile(envFolder, "local.env");
+}
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
+builder.Services.AddSysEnvironments();
 
 // Add services to the container.
 builder.Services.AddControllers();
 
 // 註冊 DbContext
-builder.Services.AddDbContext<EmailReceiverDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// builder.Services.AddDbContext<EmailReceiverDbContext>(options =>
+//     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDatabase();
 
 // 註冊 Options
 builder.Services.Configure<Pop3Options>(builder.Configuration.GetSection(Pop3Options.SectionName));
@@ -64,3 +83,11 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// 讓 Program 類別對測試專案可見
+namespace EmailReceiver.WebApi
+{
+    public partial class Program
+    {
+    }
+}
