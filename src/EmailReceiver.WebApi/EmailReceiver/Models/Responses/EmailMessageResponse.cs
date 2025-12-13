@@ -1,4 +1,4 @@
-namespace EmailReceiver.WebApi.Models.Responses;
+namespace EmailReceiver.WebApi.EmailReceiver.Models.Responses;
 
 public sealed record EmailMessageResponse(
     Guid Id,

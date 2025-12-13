@@ -1,4 +1,4 @@
-namespace EmailReceiver.WebApi.Entities;
+namespace EmailReceiver.WebApi.EmailReceiver.Data.Entities;
 
 /// <summary>
 /// 來信管理主表實體

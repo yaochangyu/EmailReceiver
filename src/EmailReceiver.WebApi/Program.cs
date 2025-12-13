@@ -1,8 +1,8 @@
 using EmailReceiver.WebApi.Adpaters;
-using EmailReceiver.WebApi.Data;
-using EmailReceiver.WebApi.Handlers;
-using EmailReceiver.WebApi.Options;
-using EmailReceiver.WebApi.Repositories;
+using EmailReceiver.WebApi.EmailReceiver;
+using EmailReceiver.WebApi.EmailReceiver.Data;
+using EmailReceiver.WebApi.EmailReceiver.Options;
+using EmailReceiver.WebApi.EmailReceiver.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

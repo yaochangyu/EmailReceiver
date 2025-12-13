@@ -1,4 +1,4 @@
-namespace EmailReceiver.WebApi.Options;
+namespace EmailReceiver.WebApi.EmailReceiver.Options;
 
 public sealed class Pop3Options
 {

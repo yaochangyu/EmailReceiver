@@ -1,10 +1,9 @@
 using CSharpFunctionalExtensions;
 using EmailReceiver.WebApi.Adpaters;
-using EmailReceiver.WebApi.Entities;
-using EmailReceiver.WebApi.Models.Responses;
-using EmailReceiver.WebApi.Repositories;
+using EmailReceiver.WebApi.EmailReceiver.Data.Entities;
+using EmailReceiver.WebApi.EmailReceiver.Repositories;
 
-namespace EmailReceiver.WebApi.Handlers;
+namespace EmailReceiver.WebApi.EmailReceiver;
 
 public class ReceiveEmailHandler
 {

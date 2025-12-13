@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace EmailReceiver.WebApi.Controllers
+namespace EmailReceiver.WebApi.EmailReceiver.Controllers
 {
     [ApiController]
     [Route("[controller]")]

@@ -1,4 +1,4 @@
-namespace EmailReceiver.WebApi.Entities;
+﻿namespace EmailReceiver.WebApi.EmailReceiver.Data.Entities;
 
 public sealed class EmailMessage
 {

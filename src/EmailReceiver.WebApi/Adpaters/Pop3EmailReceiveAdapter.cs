@@ -1,6 +1,6 @@
 using CSharpFunctionalExtensions;
-using EmailReceiver.WebApi.Models.Responses;
-using EmailReceiver.WebApi.Options;
+using EmailReceiver.WebApi.EmailReceiver.Models.Responses;
+using EmailReceiver.WebApi.EmailReceiver.Options;
 using MailKit.Net.Pop3;
 using Microsoft.Extensions.Options;
 

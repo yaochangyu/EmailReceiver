@@ -1,9 +1,9 @@
 using CSharpFunctionalExtensions;
-using EmailReceiver.WebApi.Data;
-using EmailReceiver.WebApi.Entities;
+using EmailReceiver.WebApi.EmailReceiver.Data;
+using EmailReceiver.WebApi.EmailReceiver.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace EmailReceiver.WebApi.Repositories;
+namespace EmailReceiver.WebApi.EmailReceiver.Repositories;
 
 public class ReceiveEmailRepository : IReceiveEmailRepository
 {

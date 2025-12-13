@@ -1,7 +1,7 @@
-using EmailReceiver.WebApi.Entities;
+using EmailReceiver.WebApi.EmailReceiver.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace EmailReceiver.WebApi.Data;
+namespace EmailReceiver.WebApi.EmailReceiver.Data;
 
 /// <summary>
 /// EmailReceiver 資料庫上下文

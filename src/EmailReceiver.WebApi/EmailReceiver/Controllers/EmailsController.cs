@@ -1,9 +1,8 @@
-using EmailReceiver.WebApi.Handlers;
-using EmailReceiver.WebApi.Models.Responses;
-using EmailReceiver.WebApi.Repositories;
+using EmailReceiver.WebApi.EmailReceiver.Models.Responses;
+using EmailReceiver.WebApi.EmailReceiver.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EmailReceiver.WebApi.Controllers;
+namespace EmailReceiver.WebApi.EmailReceiver.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
