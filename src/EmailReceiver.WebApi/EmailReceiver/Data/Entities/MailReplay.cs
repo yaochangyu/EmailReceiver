@@ -63,6 +63,11 @@ public sealed class MailReplay
     /// <param name="mailBody">信件內容</param>
     /// <param name="mailDate">寄信日期</param>
     /// <param name="lNo">對應 letters 表的編號</param>
+    /// <param name="mailType">郵件類型</param>
+    /// <param name="tracker">客服人員</param>
+    /// <param name="mailAttach">附件名稱</param>
+    /// <param name="mailAttachName">附件顯示名稱</param>
+    /// <param name="mailAttachSize">附件大小</param>
     /// <returns>MailReplay 實體</returns>
     public static MailReplay Create(
         string mailFrom,
@@ -70,7 +75,12 @@ public sealed class MailReplay
         string mailSubject,
         string mailBody,
         DateTime mailDate,
-        int lNo = 0)
+        int lNo = 0,
+        string mailType = "0",
+        string tracker = "",
+        string mailAttach = "",
+        string mailAttachName = "",
+        string mailAttachSize = "0")
     {
         return new MailReplay
         {
@@ -81,7 +91,12 @@ public sealed class MailReplay
             MailDate = mailDate,
             Status = 1, // 1: 待處理
             DateIn = DateTime.Now,
-            LNo = lNo
+            LNo = lNo,
+            MailType = mailType,
+            Tracker = tracker,
+            MailAttach = mailAttach,
+            MailAttachName = mailAttachName,
+            MailAttachSize = mailAttachSize
         };
     }
 }
