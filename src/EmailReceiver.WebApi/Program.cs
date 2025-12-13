@@ -1,5 +1,5 @@
-using EmailReceiver.WebApi.Adpaters;
 using EmailReceiver.WebApi.EmailReceiver;
+using EmailReceiver.WebApi.EmailReceiver.Adpaters;
 using EmailReceiver.WebApi.EmailReceiver.Data;
 using EmailReceiver.WebApi.EmailReceiver.Options;
 using EmailReceiver.WebApi.EmailReceiver.Repositories;

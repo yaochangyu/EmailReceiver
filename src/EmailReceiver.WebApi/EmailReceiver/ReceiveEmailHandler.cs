@@ -1,5 +1,5 @@
 using CSharpFunctionalExtensions;
-using EmailReceiver.WebApi.Adpaters;
+using EmailReceiver.WebApi.EmailReceiver.Adpaters;
 using EmailReceiver.WebApi.EmailReceiver.Data.Entities;
 using EmailReceiver.WebApi.EmailReceiver.Repositories;
 

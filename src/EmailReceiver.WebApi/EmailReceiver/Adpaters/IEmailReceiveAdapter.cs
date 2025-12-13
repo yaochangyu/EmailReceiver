@@ -1,7 +1,7 @@
 using CSharpFunctionalExtensions;
 using EmailReceiver.WebApi.EmailReceiver.Models.Responses;
 
-namespace EmailReceiver.WebApi.Adpaters;
+namespace EmailReceiver.WebApi.EmailReceiver.Adpaters;
 
 public interface IEmailReceiveAdapter
 {

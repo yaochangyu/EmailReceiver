@@ -4,7 +4,7 @@ using EmailReceiver.WebApi.EmailReceiver.Options;
 using MailKit.Net.Pop3;
 using Microsoft.Extensions.Options;
 
-namespace EmailReceiver.WebApi.Adpaters;
+namespace EmailReceiver.WebApi.EmailReceiver.Adpaters;
 
 public class Pop3EmailReceiveAdapter : IEmailReceiveAdapter
 {
