@@ -1,6 +1,6 @@
 using CSharpFunctionalExtensions;
 using EmailReceiver.WebApi.EmailReceiver.Adpaters;
-using EmailReceiver.WebApi.EmailReceiver.Data.Entities;
+using EmailReceiver.WebApi.EmailReceiver.Models;
 using EmailReceiver.WebApi.EmailReceiver.Repositories;
 
 namespace EmailReceiver.WebApi.EmailReceiver;
@@ -38,40 +38,63 @@ public class ReceiveEmailHandler
             return Result.Success(0);
         }
 
+        /* 目前沒有 Uidl 欄位，暫不檢查是否有重複收信
         var uidlsResult = await _repository.GetAllUidlsAsync(cancellationToken);
         if (uidlsResult.IsFailure)
         {
             return Result.Failure<int>(uidlsResult.Error);
         }
 
+        // 過濾出新郵件（尚未儲存的郵件）
         var existingUidls = new HashSet<string>(uidlsResult.Value);
+        var emails = emails.Where(e => !existingUidls.Contains(e.Uidl)).ToList();
 
-        var newEmails = emails
-            .Where(e => !existingUidls.Contains(e.Uidl))
-            .Select(e => EmailMessage.Create(
-                e.Uidl,
-                e.Subject,
-                e.Body,
-                e.From,
-                e.To,
-                e.ReceivedAt
-            ))
-            .ToList();
-
-        if (newEmails.Count == 0)
+        if (emails.Count == 0)
         {
-            _logger.LogInformation("沒有新的郵件");
+            _logger.LogInformation("所有郵件皆已存在，無需儲存");
             return Result.Success(0);
         }
+        _logger.LogInformation("發現 {Count} 封新郵件，準備寫入資料庫", emails.Count);
+       */
 
-        var addResult = await _repository.AddRangeAsync(newEmails, cancellationToken);
-        if (addResult.IsFailure)
+        // 寫入到 letters 和 mailReplay 資料庫
+        var savedCount = 0;
+        foreach (var email in emails)
         {
-            return Result.Failure<int>(addResult.Error);
+            var insertEmailRequest = InsertEmailRequest.Create(
+                senderName: ExtractNameFromEmail(email.From),
+                senderEmail: email.From,
+                subject: email.Subject,
+                body: email.Body,
+                mailDate: email.ReceivedAt
+            );
+
+            var saveResult = await _repository.AddAsync(insertEmailRequest, cancellationToken);
+            if (saveResult.IsFailure)
+            {
+                _logger.LogError("儲存郵件失敗: {Error}", saveResult.Error);
+                continue;
+            }
+
+            savedCount++;
+            _logger.LogInformation("成功儲存郵件 (UIDL: {Uidl}, LNo: {LNo})", email.Uidl, saveResult.Value);
         }
 
-        _logger.LogInformation("郵件接收完成，總共儲存 {SavedCount} 封郵件", newEmails.Count);
+        _logger.LogInformation("完成郵件接收，成功儲存 {SavedCount}/{TotalCount} 封郵件", savedCount, emails.Count);
+        return Result.Success(savedCount);
+    }
 
-        return Result.Success(newEmails.Count);
+    /// <summary>
+    /// 從 Email 地址中提取姓名部分
+    /// 例如: "John Doe &lt;john@example.com&gt;" -> "John Doe"
+    /// 或: "john@example.com" -> "john@example.com"
+    /// </summary>
+    private static string ExtractNameFromEmail(string emailAddress)
+    {
+        if (string.IsNullOrWhiteSpace(emailAddress))
+            return string.Empty;
+
+        var match = System.Text.RegularExpressions.Regex.Match(emailAddress, @"^(.+?)\s*<.+>$");
+        return match.Success ? match.Groups[1].Value.Trim() : emailAddress;
     }
 }

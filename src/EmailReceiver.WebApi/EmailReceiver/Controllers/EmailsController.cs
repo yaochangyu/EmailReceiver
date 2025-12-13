@@ -42,31 +42,4 @@ public class EmailsController : ControllerBase
 
         return Ok(response);
     }
-
-    [HttpGet]
-    public async Task<IActionResult> GetAllEmails(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("取得所有郵件");
-
-        var result = await _repository.GetAllAsync(cancellationToken);
-
-        if (result.IsFailure)
-        {
-            _logger.LogError("取得郵件清單失敗: {Error}", result.Error);
-            return BadRequest(new { error = result.Error });
-        }
-
-        var response = result.Value.Select(e => new EmailMessageResponse(
-            Id: e.Id,
-            Uidl: e.Uidl,
-            Subject: e.Subject,
-            Body: e.Body,
-            From: e.From,
-            To: e.To,
-            ReceivedAt: e.ReceivedAt,
-            CreatedAt: e.CreatedAt
-        )).ToList();
-
-        return Ok(response);
-    }
 }
