@@ -143,4 +143,14 @@ public static class ScenarioContextExtension
     {
         return context.Get<JsonNode>();
     }
+
+    public static void SetTestServer(this ScenarioContext context, TestServer testServer)
+    {
+        context.Set(testServer, "TestServer");
+    }
+
+    public static TestServer GetTestServer(this ScenarioContext context)
+    {
+        return context.Get<TestServer>("TestServer");
+    }
 }

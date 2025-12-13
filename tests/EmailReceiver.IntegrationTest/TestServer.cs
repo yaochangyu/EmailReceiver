@@ -1,7 +1,10 @@
-﻿using EmailReceiver.WebApi;
+﻿using EmailReceiver.IntegrationTest.Email;
+using EmailReceiver.WebApi;
+using EmailReceiver.WebApi.EmailReceiver.Adpaters;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Time.Testing;
 
 namespace EmailReceiver.IntegrationTest;
@@ -21,6 +24,9 @@ public class TestServer(DateTimeOffset now,
         //模擬現在時間
         var fakeTimeProvider = new FakeTimeProvider(now);
         services.AddSingleton<TimeProvider>(fakeTimeProvider);
+
+        // 替換 IEmailReceiveAdapter 為 Fake 實作
+        services.AddSingleton<IEmailReceiveAdapter>(p=>new FakeEmailReceiveAdapter());
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
