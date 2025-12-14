@@ -114,6 +114,22 @@ public class BaseStep : Steps
         // await dbContext.SaveChangesAsync();
     }
 
+    [Then(@"預期資料庫已存在 letters 資料為")]
+    public async Task Then預期資料庫已存在Letters資料為(Table table)
+    {
+        await using var dbContext = await this.ScenarioContext.GetMemberDbContextFactory().CreateDbContextAsync();
+        var actual = await dbContext.Letters.AsNoTracking().ToListAsync();
+        table.CompareToSet(actual);
+    }
+
+    [Then(@"預期資料庫已存在 mailReplay 資料為")]
+    public async Task Then預期資料庫已存在MailReplay資料為(Table table)
+    {
+        await using var dbContext = await this.ScenarioContext.GetMemberDbContextFactory().CreateDbContextAsync();
+        var actual = await dbContext.MailReplays.AsNoTracking().ToListAsync();
+        table.CompareToSet(actual);
+    }
+
     [Given(@"建立假端點，HttpMethod = ""(.*)""，URL = ""(.*)""，StatusCode = ""(.*)""，ResponseContent =")]
     public async Task Given建立假端點HttpMethodUrlStatusCodeResponseContent(
         string httpMethod, string url, int statusCode, string body)
@@ -156,17 +172,24 @@ public class BaseStep : Steps
         this.ScenarioContext.SetHttpResponse(httpResponse);
         this.ScenarioContext.SetHttpResponseBody(responseBody);
         this.ScenarioContext.SetHttpStatusCode(httpResponse.StatusCode);
+
+        // 總是印出 StatusCode 和 ResponseBody 以便除錯
+        Console.WriteLine($"StatusCode: {(int)httpResponse.StatusCode} {httpResponse.StatusCode}");
+        Console.WriteLine($"ResponseBody: {responseBody}");
+
         if (string.IsNullOrWhiteSpace(responseBody) == false)
         {
-            Console.WriteLine(responseBody);
             var jsonNode = JsonNode.Parse(responseBody);
             this.ScenarioContext.SetJsonNode(jsonNode);
-            var jsonObject = jsonNode.AsObject();
 
-            if (jsonObject.TryGetPropertyValue("nextPageToken", out var nextPageTokenNode))
+            // 只有當回應是物件時才嘗試取得 nextPageToken
+            if (jsonNode is JsonObject jsonObject)
             {
-                var nextPageToken = nextPageTokenNode.GetValue<string>();
-                this.ScenarioContext.SetNextPageToken(nextPageToken);
+                if (jsonObject.TryGetPropertyValue("nextPageToken", out var nextPageTokenNode))
+                {
+                    var nextPageToken = nextPageTokenNode.GetValue<string>();
+                    this.ScenarioContext.SetNextPageToken(nextPageToken);
+                }
             }
         }
     }
@@ -324,7 +347,8 @@ public class BaseStep : Steps
     public void Then預期得到HttpStatusCode為(int expected)
     {
         var actual = (int)this.ScenarioContext.GetHttpStatusCode();
-        actual.Should().Be(expected);
+        var responseBody = this.ScenarioContext.GetHttpResponseBody();
+        actual.Should().Be(expected, $"Response Body: {responseBody}");
     }
 
     [Then(@"預期得到 Header 為")]
