@@ -38,6 +38,6 @@ public class EmailsController : ControllerBase
             Message: $"成功接收並儲存 {result.Value} 封郵件"
         );
 
-        return Ok("OK");
+        return Ok(response);
     }
 }
