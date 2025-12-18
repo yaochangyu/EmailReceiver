@@ -1,112 +1,162 @@
 # EmailReceiver Web API
 
-使用 C# .NET 9.0 + MailKit 開發的 POP3 收信功能 Web API。
+以 POP3 協定收取郵件並寫入 SQL Server 的 Web API。專案採 Clean Architecture 分層，並以 Middleware 集中處理例外、追蹤（TraceId）與日誌。
 
-## 功能特色
+## 功能
 
-- 使用 POP3 協定收取郵件
-- 將郵件（UIDL、主旨、內容）儲存至 MSSQL 資料庫
-- 遵循清潔架構（Clean Architecture）原則
-- 使用 Result Pattern 進行錯誤處理
-- 支援 Swagger API 文件
+- 透過 POP3 連線收信（MailKit）
+- 將每封信寫入既有雙表：`letters`（來信主表）+ `mailReplay`（回覆管理表）
+- Result Pattern + 統一 Failure 格式
+- Middleware 管線：ExceptionHandling → TraceContext → RequestLogging
+- Swagger（Development 環境）
 
-## 技術架構
+## 技術棧
 
-- **Framework**: .NET 9.0
-- **郵件處理**: MailKit (POP3)
-- **資料庫**: Entity Framework Core 9.0 + SQL Server
-- **錯誤處理**: CSharpFunctionalExtensions (Result Pattern)
-- **API 文件**: Swagger/OpenAPI
+- .NET: `net10.0`
+- MailKit: POP3 收信
+- EF Core: `Microsoft.EntityFrameworkCore.SqlServer` 9.0
+- 日誌: Serilog（Console + `logs/` rolling file）
+- API 文件: Swashbuckle (Swagger)
 
-## 專案結構
+## 專案結構（重點）
 
 ```
-EmailReceiver.WebApi/
-├── Controllers/        # API 控制器
-├── Handlers/          # 商業邏輯處理器
-├── Services/          # POP3 收信服務
-├── Repositories/      # 資料存取層
-├── Entities/          # 資料實體（不可變物件）
-├── Data/              # DbContext
-├── Models/            # DTO 和 Response Models
-└── Options/           # 設定選項類別
+src/EmailReceiver.WebApi/
+├── Program.cs
+├── ServiceCollectionExtension.cs
+├── EmailReceiver/
+│   ├── Controllers/
+│   │   ├── EmailsController.cs              # POST /api/v1/emails/receive
+│   │   └── WeatherForecastController.cs     # 範例端點
+│   ├── ReceiveEmailHandler.cs               # 協調收信流程
+│   ├── Adpaters/
+│   │   ├── IEmailReceiveAdapter.cs
+│   │   └── Pop3EmailReceiveAdapter.cs       # POP3 連線收信
+│   ├── Repositories/
+│   │   ├── IReceiveEmailRepository.cs
+│   │   └── ReceiveEmailRepository.cs        # 寫入 letters + mailReplay（交易）
+│   ├── Data/
+│   │   ├── EmailReceiverDbContext.cs
+│   │   └── Entities/
+│   │       ├── Letter.cs
+│   │       └── MailReplay.cs
+│   └── Options/Pop3Options.cs               # appsettings.json: Pop3
+└── Infrastructure/
+    ├── ErrorHandling/                       # Failure / FailureCode
+    ├── TraceContext/                        # TraceId (AsyncLocal)
+    └── Middleware/                          # Middleware 管線
 ```
 
 ## 架構圖
 
-請參考 [收信功能循序圖](./docs/receive-emails-sequence.md)
+### 1) Flowchart（請求流程）
 
-## 環境需求
-
-- .NET 9.0 SDK
-- SQL Server 2019 或更新版本
-- POP3 郵件帳號
-
-## 安裝與設定
-
-### 1. 設定資料庫連線
-
-編輯 `appsettings.json`：
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=EmailReceiverDb;User Id=sa;Password=YourPassword123;TrustServerCertificate=True;"
-  }
-}
+```mermaid
+flowchart TD
+    A[Client] -->|HTTP Request| B[ExceptionHandlingMiddleware]
+    B --> C[TraceContextMiddleware\n產生/帶入 X-Trace-Id]
+    C --> D[RequestLoggingMiddleware]
+    D --> E[EmailsController\nPOST /api/v1/emails/receive]
+    E --> F[ReceiveEmailHandler]
+    F --> G[Pop3EmailReceiveAdapter\nMailKit Pop3Client]
+    G --> H[(POP3 Server)]
+    H --> G
+    F --> I[ReceiveEmailRepository\nDB Transaction]
+    I --> J[(SQL Server)]
+    J -->|INSERT| K[letters]
+    J -->|INSERT| L[mailReplay]
+    F --> M[200 OK / Failure]
 ```
 
-### 2. 設定 POP3 郵件帳號
+### 2) State Diagram（客服處理狀態）
 
-編輯 `appsettings.json`：
+> 註：目前 API 僅負責「收信並建立初始資料」；狀態後續通常由客服流程/其他系統更新。
+
+```mermaid
+stateDiagram-v2
+    state "letters.ok" as LetterOk
+    [*] --> LetterOk
+    LetterOk --> "2 未處理" : Create() 預設
+    "2 未處理" --> "1 已處理"
+    "2 未處理" --> "3 暫擱"
+    "3 暫擱" --> "2 未處理"
+
+    state "mailReplay.status" as ReplayStatus
+    [*] --> ReplayStatus
+    ReplayStatus --> "1 待處理" : Create() 預設
+    "1 待處理" --> "2 結案"
+    "1 待處理" --> "0 刪除"
+    "2 結案" --> "0 刪除"
+```
+
+### 3) Sequence Diagram（收信端點）
+
+完整循序圖請參考 [docs/receive-emails-sequence.md](docs/receive-emails-sequence.md)
+
+## 設定
+
+### 資料庫連線（必填）
+
+目前資料庫連線字串由環境變數 `SYS_DATABASE_CONNECTION_STRING` 提供（`appsettings.json` 的 `ConnectionStrings:DefaultConnection` 目前未被注入使用）。
+
+本地開發建議：使用 [env/local.env](env/local.env) 並以 `--local` 啟動（程式會自動讀取該檔案並注入環境變數）。
+
+### POP3 設定
+
+在 [src/EmailReceiver.WebApi/appsettings.json](src/EmailReceiver.WebApi/appsettings.json) 的 `Pop3` 區段設定：
 
 ```json
 {
   "Pop3": {
-    "Host": "pop.gmail.com",
-    "Port": 995,
-    "UseSsl": true,
-    "Username": "your-email@gmail.com",
-    "Password": "your-app-password"
+    "Host": "192.168.1.110",
+    "Port": 110,
+    "UseSsl": false,
+    "Username": "dmarc",
+    "Password": "dmarc"
   }
 }
 ```
 
-**Gmail 使用者注意事項：**
-- 需要啟用「兩步驟驗證」
-- 使用「應用程式密碼」，而非帳號密碼
-- 設定路徑：Google 帳戶 > 安全性 > 兩步驟驗證 > 應用程式密碼
+## 資料庫結構
 
-### 3. 建立資料庫
+此專案採既有雙表結構：
 
-執行資料庫遷移：
+- `letters`：來信主表（主鍵 `lNo`）
+- `mailReplay`：回覆管理表（以 `lNo` 關聯至 `letters.lNo`）
+
+建立表格可參考：
+
+- [db/letters.sql](db/letters.sql)
+- [db/mailReplay.sql](db/mailReplay.sql)
+
+注意：SQL 腳本內含 `[MISC].[dbo]` schema 名稱；若你的資料庫不是使用該 schema，請依環境調整（EF Model 預設對應 `dbo`）。
+
+## 執行
+
+### 方式 A：使用 `--local` 載入本地環境變數（推薦）
 
 ```bash
-cd src/EmailReceiver.WebApi
-dotnet ef migrations add InitialCreate
-dotnet ef database update
+dotnet run --project src/EmailReceiver.WebApi/EmailReceiver.WebApi.csproj -- --local
 ```
 
-### 4. 執行專案
+### 方式 B：手動設定環境變數
 
-```bash
-dotnet run
+PowerShell 範例：
+
+```powershell
+$env:SYS_DATABASE_CONNECTION_STRING = "Server=localhost;Database=EmailReceiverDb;User Id=sa;Password=YourPassword123;TrustServerCertificate=True;"
+dotnet run --project src/EmailReceiver.WebApi/EmailReceiver.WebApi.csproj
 ```
 
-API 將在以下位置執行：
-- HTTPS: https://localhost:5001
-- HTTP: http://localhost:5000
-- Swagger UI: https://localhost:5001/swagger
+Swagger（Development）通常在 `/{baseUrl}/swagger`。
 
-## API 端點
+## API
 
-### 1. 接收郵件
+### POST /api/v1/emails/receive
 
-**POST** `/api/emails/receive`
+從 POP3 收取郵件並逐封寫入資料庫（`letters` + `mailReplay`）。
 
-從 POP3 伺服器接收郵件並儲存至資料庫。
-
-**回應範例：**
+成功回應：
 
 ```json
 {
@@ -115,86 +165,55 @@ API 將在以下位置執行：
 }
 ```
 
-### 2. 取得所有郵件
-
-**GET** `/api/emails`
-
-取得資料庫中所有已儲存的郵件。
-
-**回應範例：**
-
-```json
-[
-  {
-    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "uidl": "1234567890abcdef",
-    "subject": "測試郵件",
-    "body": "這是郵件內容",
-    "from": "sender@example.com",
-    "to": "receiver@example.com",
-    "receivedAt": "2025-12-10T10:30:00Z",
-    "createdAt": "2025-12-10T10:35:00Z"
-  }
-]
-```
-
-## 使用範例
-
-### 使用 curl
+curl 範例（含 TraceId）：
 
 ```bash
-# 接收郵件
-curl -X POST https://localhost:5001/api/emails/receive
-
-# 取得所有郵件
-curl https://localhost:5001/api/emails
+curl -X POST "http://localhost:9527/api/v1/emails/receive" -H "X-Trace-Id: demo-trace-id"
 ```
 
-### 使用 Swagger UI
+> 若你的環境啟用了 HTTPS，請將 URL 改為 `https://...`。
 
-1. 啟動專案後，開啟瀏覽器
-2. 前往 https://localhost:5001/swagger
-3. 測試 API 端點
+## 追蹤與錯誤格式
 
-## 資料庫結構
+- 追蹤標頭：`X-Trace-Id`
+  - Client 可自帶；未提供時伺服器會產生
+  - Response 一定會回傳 `X-Trace-Id`
 
-### EmailMessages 表格
+錯誤回應格式（示意）：
 
-| 欄位 | 型別 | 說明 |
-|------|------|------|
-| Id | uniqueidentifier | 主鍵 |
-| Uidl | nvarchar(500) | 郵件唯一識別碼（唯一索引）|
-| Subject | nvarchar(1000) | 郵件主旨 |
-| Body | nvarchar(max) | 郵件內容 |
-| From | nvarchar(500) | 寄件者 |
-| To | nvarchar(500) | 收件者 |
-| ReceivedAt | datetime2 | 郵件接收時間（索引）|
-| CreatedAt | datetime2 | 資料建立時間 |
+```json
+{
+  "code": "Pop3ConnectionError",
+  "message": "從 POP3 伺服器取得郵件時發生錯誤",
+  "traceId": "..."
+}
+```
 
-## 開發原則
+## 測試
 
-本專案遵循以下開發原則：
+整合測試位於 `tests/EmailReceiver.IntegrationTest/`（BDD / Reqnroll），並以 Fake Adapter 模擬 POP3 回應。
 
-1. **不可變物件設計**：Entity 使用 `init` 關鍵字
-2. **清潔架構**：Controller → Handler → Service/Repository → Database
-3. **Result Pattern**：使用 `CSharpFunctionalExtensions` 處理錯誤
-4. **Repository Pattern**：封裝資料存取邏輯
-5. **依賴注入**：使用 .NET 內建 DI 容器
+```bash
+dotnet test tests/EmailReceiver.IntegrationTest/EmailReceiver.IntegrationTest.csproj
+```
 
-## 故障排除
+## 其他端點（範例/測試用）
 
-### POP3 連線失敗
+- `GET /WeatherForecast`
+- `GET /api/v1/tests`（回傳 query 參數）
 
-- 確認防火牆允許 POP3 連接埠（通常是 995）
-- 檢查郵件伺服器設定是否正確
-- Gmail 使用者：確認已啟用「低安全性應用程式存取」或使用「應用程式密碼」
+## 常見問題
 
-### 資料庫連線失敗
+### 1) 呼叫 API 被 307 轉址到 HTTPS
 
-- 確認 SQL Server 正在執行
-- 檢查連線字串是否正確
-- 確認資料庫使用者具有適當權限
+若你在環境變數只設定 `ASPNETCORE_URLS=http://...`，但專案仍啟用 `UseHttpsRedirection()`，可能會出現 HTTP → HTTPS 轉址；請依你的部署方式調整 `ASPNETCORE_URLS`（同時提供 http/https）或調整反向代理/憑證設定。
 
-## 授權
+### 2) 資料庫連線失敗
 
-MIT License
+- 確認已設定 `SYS_DATABASE_CONNECTION_STRING`
+- 確認資料庫中存在 `letters` 與 `mailReplay` 兩張表
+
+### 3) POP3 連線失敗
+
+- 確認 `Pop3` 設定（Host/Port/UseSsl/帳密）
+- 若使用 Gmail，通常需使用 SSL 與應用程式密碼（Port 常見為 995），並依實際環境調整
