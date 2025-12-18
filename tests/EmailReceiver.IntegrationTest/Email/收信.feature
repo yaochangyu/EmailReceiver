@@ -27,8 +27,7 @@
           }
         ]
         """
-        #When 調用端發送 "POST" 請求至 "api/v1/emails/receive"
-        When 調用端發送 "GET" 請求至 "WeatherForecast"
+        When 調用端發送 "POST" 請求至 "api/v1/emails/receive"
         Then 預期得到 HttpStatusCode 為 "200"
         Then 預期資料庫已存在 letters 資料為
           | sender             | s_email            | towhom | s_date                    | s_subject    | s_question         | circumstance     | ok |
