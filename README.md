@@ -24,7 +24,7 @@
 src/EmailReceiver.WebApi/
 ├── Program.cs
 ├── ServiceCollectionExtension.cs
-├── EmailReceiver/
+├── Email/
 │   ├── Controllers/
 │   │   ├── EmailsController.cs              # POST /api/v1/emails/receive
 │   │   └── WeatherForecastController.cs     # 範例端點
@@ -41,6 +41,8 @@ src/EmailReceiver.WebApi/
 │   │       ├── Letter.cs
 │   │       └── MailReplay.cs
 │   └── Options/Pop3Options.cs               # appsettings.json: Pop3
+├── Health/
+│   └── HealthController.cs                  # GET /api/v1/_health, GET /api/v1/_health/db
 └── Infrastructure/
     ├── ErrorHandling/                       # Failure / FailureCode
     ├── TraceContext/                        # TraceId (AsyncLocal)
@@ -173,6 +175,44 @@ curl -X POST "http://localhost:9527/api/v1/emails/receive" -H "X-Trace-Id: demo-
 
 > 若你的環境啟用了 HTTPS，請將 URL 改為 `https://...`。
 
+### GET /api/v1/_health
+
+基本健康檢查端點，回傳服務狀態。
+
+成功回應：
+
+```json
+{
+  "status": "Healthy",
+  "timestamp": "2025-12-19T02:55:00.000Z"
+}
+```
+
+### GET /api/v1/_health/db
+
+資料庫連線診斷端點，檢查資料庫是否可訪問。
+
+成功回應（資料庫連線正常）：
+
+```json
+{
+  "status": "Healthy",
+  "database": "Connected",
+  "timestamp": "2025-12-19T02:55:00.000Z"
+}
+```
+
+失敗回應（資料庫連線異常，HTTP 503）：
+
+```json
+{
+  "status": "Unhealthy",
+  "database": "Disconnected",
+  "error": "錯誤訊息...",
+  "timestamp": "2025-12-19T02:55:00.000Z"
+}
+```
+
 ## 追蹤與錯誤格式
 
 - 追蹤標頭：`X-Trace-Id`
@@ -201,6 +241,8 @@ dotnet test tests/EmailReceiver.IntegrationTest/EmailReceiver.IntegrationTest.cs
 
 - `GET /WeatherForecast`
 - `GET /api/v1/tests`（回傳 query 參數）
+- `GET /api/v1/_health`（健康檢查）
+- `GET /api/v1/_health/db`（資料庫診斷）
 
 ## 常見問題
 
