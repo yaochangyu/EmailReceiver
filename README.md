@@ -135,22 +135,119 @@ stateDiagram-v2
 
 ## 執行
 
-### 方式 A：使用 `--local` 載入本地環境變數（推薦）
+### 開發環境
 
-```bash
-dotnet run --project src/EmailReceiver.WebApi/EmailReceiver.WebApi.csproj -- --local
-```
+#### 方式 A：使用 `--local` 載入本地環境變數（推薦）
 
-### 方式 B：手動設定環境變數
+1. 編輯 `env/local.env` 設定資料庫連線字串：
+   ```ini
+   SYS_DATABASE_CONNECTION_STRING=Server=localhost;Database=MISC;User Id=sa;Password=YourPassword;TrustServerCertificate=True;
+   ```
+
+2. 執行專案：
+   ```bash
+   dotnet run --project src/EmailReceiver.WebApi/EmailReceiver.WebApi.csproj -- --local
+   ```
+
+#### 方式 B：手動設定環境變數
 
 PowerShell 範例：
 
 ```powershell
-$env:SYS_DATABASE_CONNECTION_STRING = "Server=localhost;Database=EmailReceiverDb;User Id=sa;Password=YourPassword123;TrustServerCertificate=True;"
+$env:SYS_DATABASE_CONNECTION_STRING = "Server=localhost;Database=MISC;User Id=sa;Password=YourPassword;TrustServerCertificate=True;"
 dotnet run --project src/EmailReceiver.WebApi/EmailReceiver.WebApi.csproj
 ```
 
-Swagger（Development）通常在 `/{baseUrl}/swagger`。
+Swagger（Development）通常在 `http://localhost:{port}/swagger`。
+
+### 生產環境部署
+
+#### 步驟 1：發布應用程式
+
+```bash
+# Windows x64（獨立執行檔，不需安裝 .NET Runtime）
+dotnet publish src/EmailReceiver.WebApi/EmailReceiver.WebApi.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+
+# Linux x64（獨立執行檔）
+dotnet publish src/EmailReceiver.WebApi/EmailReceiver.WebApi.csproj -c Release -r linux-x64 --self-contained true -o publish/linux-x64
+```
+
+發布完成後，執行檔位於 `publish/win-x64/EmailReceiver.WebApi.exe`（Windows）或 `publish/linux-x64/EmailReceiver.WebApi`（Linux）。
+
+#### 步驟 2：啟動應用程式
+
+**選項 A：使用 `--local` 參數（推薦）**
+
+1. 將 `env/local.env` 複製到執行檔所在目錄的上層 `env` 資料夾：
+   ```
+   publish/
+   ├── win-x64/
+   │   └── EmailReceiver.WebApi.exe
+   └── env/
+       └── local.env
+   ```
+
+2. 執行時帶入 `--local` 參數：
+   ```bash
+   # Windows
+   .\EmailReceiver.WebApi.exe --local
+
+   # Linux
+   ./EmailReceiver.WebApi --local
+   ```
+
+**選項 B：使用 PowerShell 設定個人系統環境變數**
+
+設定永久性的使用者環境變數（重啟後仍有效）：
+
+```powershell
+# 設定環境變數
+[Environment]::SetEnvironmentVariable("SYS_DATABASE_CONNECTION_STRING", "Server=your-server;Database=MISC;User Id=sa;Password=YourPassword;TrustServerCertificate=True;", "User")
+
+# 驗證設定
+[Environment]::GetEnvironmentVariable("SYS_DATABASE_CONNECTION_STRING", "User")
+
+# 重啟 PowerShell 後，直接執行
+.\EmailReceiver.WebApi.exe
+```
+
+> **注意**：設定系統環境變數後，需要重新開啟 PowerShell 或命令提示字元視窗，新的環境變數才會生效。
+
+**選項 C：臨時設定當前工作階段環境變數**
+
+```powershell
+# 僅在當前 PowerShell 工作階段有效
+$env:SYS_DATABASE_CONNECTION_STRING = "Server=your-server;Database=MISC;User Id=sa;Password=YourPassword;TrustServerCertificate=True;"
+.\EmailReceiver.WebApi.exe
+```
+
+**選項 D：建立啟動腳本**
+
+建立 `start.bat`（Windows 批次檔）：
+```batch
+@echo off
+set SYS_DATABASE_CONNECTION_STRING=Server=your-server;Database=MISC;User Id=sa;Password=YourPassword;TrustServerCertificate=True;
+EmailReceiver.WebApi.exe
+pause
+```
+
+建立 `start.ps1`（PowerShell 腳本）：
+```powershell
+$env:SYS_DATABASE_CONNECTION_STRING = "Server=your-server;Database=MISC;User Id=sa;Password=YourPassword;TrustServerCertificate=True;"
+.\EmailReceiver.WebApi.exe
+```
+
+#### 步驟 3：驗證服務啟動
+
+服務啟動後，可使用健康檢查端點驗證：
+
+```bash
+# 基本健康檢查
+curl http://localhost:5000/api/v1/_health
+
+# 資料庫連線檢查
+curl http://localhost:5000/api/v1/_health/db
+```
 
 ## API
 
